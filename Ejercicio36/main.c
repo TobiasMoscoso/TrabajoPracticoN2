@@ -7,83 +7,72 @@ Una vez creada la lista guardarla en un archivo de
 organización directa llamado "contactos_ordenados.dat" 
 imprimiendola en pantalla.
 */
-#include "libs.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+struct datos{
+    char nombre[20];
+    char apellido[20];
+    char edad;
+    long tel;
+    char mail[40];
+};
+
+struct lista{
+    struct datos d;
+    struct lista *sig,*ant;
+};
 
 int main(){
     FILE *file;
-    struct lista *p=NULL, *u=NULL, *aux,*r;
+    struct lista *lista=NULL, *aux=NULL, *local;
     struct datos d;
     
 
-    file = fopen("contactos.dat","rb");
+    if(!(file = fopen("contactos.dat","rb"))){
+        printf("No se encuentra el archivo\n");
+        return 0;
+    }
 
     fread(&d,sizeof(d),1,file);
     while(!feof(file)){
         aux = (struct lista*)malloc(sizeof(struct lista));
-        
-        if(aux){
-            strcpy(aux->d.nombre,d.nombre);
-            //aux->d.edad = d.edad;
-            printf("Aux es: %s\n",aux->d.nombre);
-            if(p==NULL){
-                printf("0\n");
-                //p es el primer elemento
-                p=u=aux;
-                u->l=NULL;
+        strcpy(aux->d.nombre,d.nombre);
+
+        if(!lista){
+            lista=aux;
+            lista->sig = NULL;
+        }else{
+            local=lista;
+
+            while((strcmp(local->d.nombre,aux->d.nombre)<=0)&&(local->sig!=NULL)){
+                local=local->sig;
             }
-            else{//si ya tiene datos
-                r=p;
-                while(1){
-                    //strcmp(r->d.nombre,aux->d.nombre)>0
-                    //r->d.edad > aux->d.edad
-                    if(strOrden(20,r->d.nombre,aux->d.nombre)){
-                        printf("%s < %s\n",r->d.nombre,aux->d.nombre);
-                        printf("1\n");
-                        //como una pila
-                        aux->l=p;
-                        p=aux;
-                        break;
-                    }
-                    
-                    while(r->l){
-                        //strcmp(r->l->d.nombre,aux->d.nombre)<0
-                        //r->l->d.edad < aux->d.edad
-                        if(!strOrden(20,r->l->d.nombre,aux->d.nombre)){
-                            printf("%s < %s\n",r->l->d.nombre,aux->d.nombre);
-                            r=r->l;
-                            printf("2\n");
-                        }
-                        else {
-                            printf("3\n");
-                            break;
-                        }
-                    }
-                    
-                    if(r==u){
-                        u->l=aux;
-                        u=aux;
-                        u->l=NULL;
-                        printf("4\n");
-                        break;
-                    }
-                    else{
-                        printf("5\n");
-                        aux->l=r->l;
-                        r->l=aux;break;
-                    }
-                    
-                }
-                
+
+            if(strcmp(local->d.nombre,aux->d.nombre)>0){
+                if(aux->ant){
+                    aux->ant->sig = aux;
+                }else 
+                    lista=aux;
+                aux->ant = local->ant;
+                local->ant=aux;
+                aux->sig=local;
+            }else
+            {
+                local->sig=aux;
+                aux->ant=local;
+                aux->sig=NULL;
             }
-        } 
-        
+        }
         fread(&d,sizeof(d),1,file);
     }
     fclose(file);
-    printf("Lista ordenada?:\n");
-    while(aux){
-        printf("%s\n",aux->d.nombre);
-        aux=aux->l;
+    printf("Lista ordenada A-Z:\n");
+    while(lista){
+        printf("%s\n",lista->d.nombre);
+        lista=lista->sig;
     }
 
     //free(aux);

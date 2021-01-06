@@ -21,41 +21,43 @@ de pila. Realizar el main con varias llamadas a dicha función y
 proceder a mostrar las descripciones del archivo, mediante 
 la pila como acceso directo, NO USAR VARIABLES GLOBALES.
 
-Traduccion:
 Si tipo tiene 1 en el bit 4 ----> Apilo clave y pos fisica
 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-struct pila *apilarconClave(long clave,long ing,unsigned char x,struct pila *aux,struct pila *p);
-    struct pila{
-        long clave;
-        long memo;
-        struct pila *l;
-    };
+struct pila *apilarconClave(long,struct pila*);
+int menu(int o);
 
-int main(){
+struct pila{
+    long clave;
+    long memo;
+    struct pila *l;
+};
 
-    struct d{                                                                                            
+struct d{                                                                                            
         long clave; //Clave o Id del registro
         char d[30]; // Descripcion                                                                                          
         unsigned char tipo; //Tipo de datos como entero sin signo                                                                                                                                            
         char b; //'A':Alta 'B':Baja                                                                                                                                                                          
-    };
+};
 
-    
+int main(){
     FILE *f;
-    struct pila *p,*aux;
     struct d dato;
+    struct pila *p=NULL,*aux=NULL;
     long cl;
     int op;
+    char x = 1;
 
-    
-    
     switch(menu(op)){
         case 1: //Crear archivo
-            f= fopen("datos.dat","ab");
+            if(!(f= fopen("datos.dat","ab"))){
+                printf("No se encuentra el archivo\n");
+                return 0;
+            }
+
             printf("Ingrese datos:\n");
             printf("Clave: ");
             scanf("%ld",&dato.clave);fflush(stdin);
@@ -70,48 +72,79 @@ int main(){
             fclose(f);
             break;
         case 2:
-            printf("Introduzca la clave: ");
-            scanf("%ld",&cl);
+            while(x){
+                printf("\nIntroduzca la clave: ");
+                scanf("%ld",&cl);fflush(stdin);
+                p=apilarconClave(cl,p);
 
+                printf("Seguir? SI(1)/NO(0)");
+                scanf("%d",&x);fflush(stdin);
+            }
+            
             if(!(f = fopen("datos.dat","rb"))){
                 printf("Archivo no encontrado\n");
                 return 0;
             }
-
-            fread(&dato,sizeof(dato),1,f);
-            while(!feof(f)){ 
-                
-                aux=apilarconClave(dato.clave,cl,dato.tipo,&aux,&p);
-
-                printf("%d",aux->l);
-                
+            while(p->l!=NULL){
+                fseek(f,p->memo*(long)sizeof(struct d),SEEK_SET);
                 fread(&dato,sizeof(dato),1,f);
+                printf("Desc: %s\n",dato.d);
+
+                aux = p;
+                p = p->l;
+                free(aux);
             }
+            fseek(f,p->memo*(long)sizeof(struct d),SEEK_SET);
+            fread(&dato,sizeof(dato),1,f);
+            printf("Desc: %s\n",dato.d);
+            free(aux);
             fclose(f);
             break;
     }
+
 }
 
 
-struct pila *apilarconClave(long clave,long ing,unsigned char x,struct pila *aux,struct pila *p){
-    
-    if(clave == ing){
-        if(x & 0b00010000 == 0b00010000){
-            aux = (struct pila*)malloc(sizeof(struct pila));
-            aux->clave=clave;
-            
-            aux->l = p;
-            p = aux;
-            printf("Clave: %ld\n",aux->clave);
-            aux = (struct pila*)malloc(sizeof(struct pila));
-            aux->memo=(long*)aux->l;
-            aux->l = p;
-            printf("Direccion: %d\n",aux->memo);
-            return aux->l;
-        }
-    }else{
-        printf("Registro no encontrado\n");
+struct pila *apilarconClave(long clave,struct pila *p){
+    FILE *f;
+    struct d dato;
+    long pos = 0;
+    struct pila *aux;
+
+    if(!(f = fopen("datos.dat","rb"))){
+        printf("Archivo no encontrado\n");
+        return 0;
     }
+    fread(&dato,sizeof(dato),1,f);
+    while(!feof(f)){ 
+        if(dato.clave==clave){
+            if(dato.tipo & (1<<4)){
+                printf("Detected!\n");
+                aux=(struct pila*)malloc(sizeof(struct pila));
+
+                aux->clave = clave;
+                aux->memo = pos;
+                
+                if(!p){
+                    aux->l=NULL;
+                }
+                else{
+                    aux->l = p;
+                }
+
+                fclose(f);
+                return aux;
+            }else{
+                printf("Tipo incorrecto\n");
+                return p;
+            }
+        }
+        fread(&dato,sizeof(dato),1,f);
+        pos++;
+    }
+    printf("Registro no encontrado\n");
+    fclose(f);
+    return p;
 }
 
 
